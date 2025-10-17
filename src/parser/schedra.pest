@@ -1,0 +1,39 @@
+WHITESPACE = _{ (" " | "\t" | "\r" | "\n")+ }
+COMMENT    = _{ "//" ~ (!NEWLINE ~ ANY)* ~ NEWLINE? }
+NEWLINE    = _{ "\r\n" | "\n" }
+
+identifier = @{ (ASCII_ALPHANUMERIC | "_")+ }
+string     = @{ "\"" ~ (!"\"" ~ ANY)* ~ "\"" }
+number     = @{ ASCII_DIGIT+ }
+
+primary   =  {
+    string
+  | number
+  | identifier
+}
+expr      =  { primary ~ (infix ~ primary)* }
+infix     = _{ add | sub | mul | div | le | lt | ge | gt | eq | ne | and | or }
+inc       =  { "++" }
+dec       =  { "--" }
+add       =  { "+" }
+sub       =  { "-" }
+mul       =  { "*" }
+div       =  { "/" }
+le        =  { "<=" }
+lt        =  { "<" }
+ge        =  { ">=" }
+gt        =  { ">" }
+eq        =  { "==" }
+ne        =  { "!=" }
+and       =  { "&&" }
+or        =  { "||" }
+
+assign_op  =  { "=" | "+=" | "-=" }
+assignment =  { identifier ~ assign_op ~ expr }
+base_stmt  = _{ assignment | expr }
+statement  =  { base_stmt ~ ";" }
+
+block      =  { "{" ~ statement* ~ "}" }
+hook       =  { "on" ~ identifier ~ "(" ~ identifier ~ ")" ~ block }
+
+program    = { SOI ~ hook* ~ EOI }
