@@ -1,5 +1,5 @@
-mod test;
 pub mod ast;
+mod test;
 
 use pest::Span;
 use std::iter::FilterMap;
@@ -17,7 +17,7 @@ pub trait Node<'a> {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Identifier<'a> {
     pub name: &'a str,
     pub span: Span<'a>,
@@ -33,7 +33,7 @@ impl<'a> Node<'a> for Identifier<'a> {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct StringLiteral<'a> {
     pub value: &'a str,
     pub span: Span<'a>,
@@ -49,7 +49,7 @@ impl<'a> Node<'a> for StringLiteral<'a> {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct IntegerLiteral<'a> {
     pub value: i64,
     pub span: Span<'a>,
@@ -65,7 +65,7 @@ impl<'a> Node<'a> for IntegerLiteral<'a> {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct BinaryExpr<'a> {
     pub lhs: Box<Expr<'a>>,
     pub rhs: Box<Expr<'a>>,
@@ -82,7 +82,7 @@ impl<'a> Node<'a> for BinaryExpr<'a> {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct UnaryExpr<'a> {
     pub expr: Box<Expr<'a>>,
     pub span: Span<'a>,
@@ -98,7 +98,7 @@ impl<'a> Node<'a> for UnaryExpr<'a> {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Expr<'a> {
     Identifier(Box<Identifier<'a>>),
     Integer(Box<IntegerLiteral<'a>>),
@@ -123,14 +123,14 @@ impl<'a> Node<'a> for Expr<'a> {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum AssignOp {
     Assign,
     AddAssign,
     SubAssign,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Assignment<'a> {
     pub lvalue: Box<Identifier<'a>>,
     pub rvalue: Box<Expr<'a>>,
@@ -147,7 +147,7 @@ impl<'a> Node<'a> for Assignment<'a> {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Statement<'a> {
     Assignment(Box<Assignment<'a>>),
     Expr(Box<Expr<'a>>),
@@ -166,9 +166,9 @@ impl<'a> Node<'a> for Statement<'a> {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Hook<'a> {
-    pub name: Identifier<'a>,
+    pub attach_point: Identifier<'a>,
     pub arg: Identifier<'a>,
     pub block: Block<'a>,
     pub span: Span<'a>,
@@ -184,7 +184,7 @@ impl<'a> Node<'a> for Hook<'a> {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Block<'a> {
     pub statements: Vec<Statement<'a>>,
     pub span: Span<'a>,
@@ -200,7 +200,7 @@ impl<'a> Node<'a> for Block<'a> {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Program<'a> {
     pub hooks: Vec<Hook<'a>>,
     pub span: Span<'a>,

@@ -1,3 +1,4 @@
+use super::*;
 use anyhow::Result;
 use itertools::Itertools;
 use pest::{
@@ -5,7 +6,6 @@ use pest::{
     iterators::Pair,
     pratt_parser::{Assoc, Op, PrattParser},
 };
-use super::*;
 
 #[derive(pest_derive::Parser)]
 #[grammar = "parser/schedra.pest"]
@@ -130,12 +130,12 @@ fn convert_hook(pair: Pair<Rule>) -> Hook {
     let span = pair.as_span();
     let mut pairs = pair.into_inner();
 
-    let name = convert_ident(pairs.next().unwrap());
+    let attach_point = convert_ident(pairs.next().unwrap());
     let arg = convert_ident(pairs.next().unwrap());
     let block = convert_block(pairs.next().unwrap());
 
     Hook {
-        name,
+        attach_point,
         arg,
         block,
         span,
@@ -151,7 +151,7 @@ fn convert_prog(pair: Pair<Rule>) -> Program {
             Rule::hook => Some(convert_hook(p)),
             _ => None,
         })
-    .collect();
+        .collect();
     Program { hooks, span }
 }
 
@@ -161,5 +161,3 @@ pub fn parse(input: &str) -> Result<Program<'_>> {
         .map_err(|_| anyhow::anyhow!("failed to parse the program"))?;
     Ok(convert_prog(pair))
 }
-
-
