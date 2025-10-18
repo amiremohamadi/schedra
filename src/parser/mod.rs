@@ -1,6 +1,7 @@
 pub mod ast;
 mod test;
 
+use crate::parser::ast::Rule;
 use pest::Span;
 use std::iter::FilterMap;
 
@@ -66,9 +67,46 @@ impl<'a> Node<'a> for IntegerLiteral<'a> {
 }
 
 #[derive(Debug, Clone)]
+pub enum ExprOp {
+    Add,
+    Sub,
+    Mul,
+    Div,
+    Le,
+    Lt,
+    Ge,
+    Gt,
+    Eq,
+    Ne,
+    And,
+    Or,
+}
+
+impl ExprOp {
+    pub fn from(r: Rule) -> Self {
+        match r {
+            Rule::add => Self::Add,
+            Rule::sub => Self::Sub,
+            Rule::mul => Self::Mul,
+            Rule::div => Self::Div,
+            Rule::le => Self::Le,
+            Rule::lt => Self::Lt,
+            Rule::ge => Self::Ge,
+            Rule::gt => Self::Gt,
+            Rule::eq => Self::Eq,
+            Rule::ne => Self::Ne,
+            Rule::and => Self::And,
+            Rule::or => Self::Or,
+            _ => unreachable!(),
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
 pub struct BinaryExpr<'a> {
     pub lhs: Box<Expr<'a>>,
     pub rhs: Box<Expr<'a>>,
+    pub op: ExprOp,
     pub span: Span<'a>,
 }
 

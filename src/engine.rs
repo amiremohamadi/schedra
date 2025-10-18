@@ -2,8 +2,11 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 
 use crate::parser::ast;
-use crate::parser::{Assignment, Expr, Hook, Identifier, IntegerLiteral, Node, Statement};
+use crate::parser::{
+    Assignment, BinaryExpr, Expr, ExprOp, Hook, Identifier, IntegerLiteral, Node, Statement,
+};
 use anyhow::{Result, anyhow};
+use pest::Span;
 
 #[derive(Debug, Default)]
 pub struct DispatchedTask {
@@ -46,6 +49,31 @@ impl<'a> Engine<'a> {
         }
     }
 
+    fn binary_expr_eval(&self, expr: &Box<BinaryExpr<'a>>, span: Span<'a>) -> Expr<'a> {
+        let lhs = self.expr_eval(&expr.lhs);
+        let rhs = self.expr_eval(&expr.rhs);
+        match (lhs, rhs) {
+            (Expr::Integer(l), Expr::Integer(r)) => {
+                let value = match &expr.op {
+                    ExprOp::Add => r.value + l.value,
+                    ExprOp::Sub => r.value - l.value,
+                    ExprOp::Mul => r.value * l.value,
+                    ExprOp::Div => r.value / l.value,
+                    ExprOp::Le => (r.value <= l.value) as i64,
+                    ExprOp::Lt => (r.value < l.value) as i64,
+                    ExprOp::Ge => (r.value >= l.value) as i64,
+                    ExprOp::Gt => (r.value > l.value) as i64,
+                    ExprOp::Eq => (r.value == l.value) as i64,
+                    ExprOp::Ne => (r.value != l.value) as i64,
+                    ExprOp::And => (r.value != 0 && l.value != 0) as i64,
+                    ExprOp::Or => (r.value != 0 || l.value != 0) as i64,
+                };
+                Expr::Integer(Box::new(IntegerLiteral { value, span }))
+            }
+            _ => unimplemented!(), // binary expressions are not supported on other types
+        }
+    }
+
     fn expr_eval(&self, expr: &Box<Expr<'a>>) -> Expr<'a> {
         let span = expr.span();
         match &**expr {
@@ -53,6 +81,7 @@ impl<'a> Engine<'a> {
                 let value = self.resolve_ident(ident.name);
                 Expr::Integer(Box::new(IntegerLiteral { value, span }))
             }
+            Expr::BinaryExpr(expr) => self.binary_expr_eval(expr, span),
             e => e.clone(),
         }
     }
@@ -101,6 +130,9 @@ mod tests {
                 x = 12;
                 anotherx = 13;
                 y = x;
+                z = 1 + 2 - 1 * 3;
+                true = 1 || 0;
+                false = 12 && 0;
             }
         "#,
         )
@@ -112,6 +144,9 @@ mod tests {
         assert_int_var!(engine, "x", 12);
         assert_int_var!(engine, "anotherx", 13);
         assert_int_var!(engine, "y", 12);
+        assert_int_var!(engine, "z", 0);
+        assert_int_var!(engine, "true", 1);
+        assert_int_var!(engine, "false", 0);
         assert_eq!(engine.arg.name, "task");
     }
 }

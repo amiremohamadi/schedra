@@ -52,17 +52,16 @@ fn convert_expr(pair: Pair<Rule>) -> Expr {
     let pairs = pair.into_inner();
 
     let parser = PrattParser::new()
-        .op(Op::infix(Rule::add, Assoc::Left)
-            | Op::infix(Rule::sub, Assoc::Left)
-            | Op::infix(Rule::mul, Assoc::Left)
-            | Op::infix(Rule::div, Assoc::Left))
+        .op(Op::infix(Rule::or, Assoc::Left))
+        .op(Op::infix(Rule::and, Assoc::Left))
         .op(Op::infix(Rule::ge, Assoc::Left)
             | Op::infix(Rule::gt, Assoc::Left)
             | Op::infix(Rule::le, Assoc::Left)
             | Op::infix(Rule::lt, Assoc::Left)
             | Op::infix(Rule::eq, Assoc::Left)
             | Op::infix(Rule::ne, Assoc::Left))
-        .op(Op::infix(Rule::and, Assoc::Left) | Op::infix(Rule::or, Assoc::Left));
+        .op(Op::infix(Rule::add, Assoc::Left) | Op::infix(Rule::sub, Assoc::Left))
+        .op(Op::infix(Rule::mul, Assoc::Left) | Op::infix(Rule::div, Assoc::Left));
 
     parser
         .map_primary(|p| convert_primary_expr(p))
@@ -72,6 +71,7 @@ fn convert_expr(pair: Pair<Rule>) -> Expr {
             Expr::BinaryExpr(Box::new(BinaryExpr {
                 lhs: Box::new(lhs),
                 rhs: Box::new(rhs),
+                op: ExprOp::from(_op.as_rule()),
                 span,
             }))
         })

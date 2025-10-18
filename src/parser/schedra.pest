@@ -13,8 +13,6 @@ primary   =  {
 }
 expr      =  { primary ~ (infix ~ primary)* }
 infix     = _{ add | sub | mul | div | le | lt | ge | gt | eq | ne | and | or }
-inc       =  { "++" }
-dec       =  { "--" }
 add       =  { "+" }
 sub       =  { "-" }
 mul       =  { "*" }
