@@ -2,7 +2,7 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 
 use crate::parser::ast;
-use crate::parser::{Assignment, Expr, Hook, Statement};
+use crate::parser::{Assignment, Expr, Hook, Identifier, IntegerLiteral, Node, Statement};
 use anyhow::{Result, anyhow};
 
 #[derive(Debug, Default)]
@@ -12,7 +12,9 @@ pub struct DispatchedTask {
 
 pub struct Engine<'a> {
     pub statements: Vec<Statement<'a>>,
-    pub variables: RefCell<HashMap<&'a str, Expr<'a>>>,
+    pub arg: Identifier<'a>,
+    pub vars: RefCell<HashMap<&'a str, Box<Expr<'a>>>>,
+    pub global_vars: RefCell<HashMap<&'a str, Expr<'a>>>,
 }
 
 impl<'a> Engine<'a> {
@@ -26,15 +28,40 @@ impl<'a> Engine<'a> {
 
         Ok(Self {
             statements: hook.block.statements,
-            variables: RefCell::new(HashMap::new()),
+            arg: hook.arg,
+            vars: RefCell::new(HashMap::new()),
+            global_vars: RefCell::new(HashMap::new()),
         })
     }
 
+    fn resolve_ident(&self, name: &'a str) -> i64 {
+        match self.vars.borrow().get(name) {
+            Some(x) => {
+                match self.expr_eval(x) {
+                    Expr::Integer(n) => n.value,
+                    _ => unreachable!(), // should never happen
+                }
+            }
+            None => 0,
+        }
+    }
+
+    fn expr_eval(&self, expr: &Box<Expr<'a>>) -> Expr<'a> {
+        let span = expr.span();
+        match &**expr {
+            Expr::Identifier(ident) => {
+                let value = self.resolve_ident(ident.name);
+                Expr::Integer(Box::new(IntegerLiteral { value, span }))
+            }
+            e => e.clone(),
+        }
+    }
+
     fn assignment_eval(&self, assign: &Box<Assignment<'a>>) {
-        // FIXME: avoid cloning
-        self.variables
+        let expr = self.expr_eval(&assign.rvalue);
+        self.vars
             .borrow_mut()
-            .insert(assign.lvalue.name, *assign.rvalue.clone());
+            .insert(assign.lvalue.name, Box::new(expr));
     }
 
     pub fn eval(&self, task: &mut DispatchedTask) {
@@ -43,7 +70,7 @@ impl<'a> Engine<'a> {
         for stmt in statements.iter() {
             match stmt {
                 Statement::Assignment(assign) => self.assignment_eval(assign),
-                _ => {}
+                _ => {} // skip
             }
         }
     }
@@ -56,11 +83,12 @@ mod tests {
 
     macro_rules! assert_int_var {
         ($engine:expr, $var:expr, $expected:expr) => {
-            match $engine.variables.borrow_mut().get($var) {
-                Some(Expr::Integer(expr)) => {
-                    assert_eq!(expr.value, $expected);
-                }
-                _ => panic!("variable '{}' is not an integer", $var),
+            match $engine.vars.borrow_mut().get($var) {
+                Some(boxed) => match boxed.as_ref() {
+                    Expr::Integer(expr) => assert_eq!(expr.value, $expected),
+                    _ => panic!("variable '{}' is not an integer", $var),
+                },
+                _ => panic!("variable '{}' doesn't exist", $var),
             }
         };
     }
@@ -72,6 +100,7 @@ mod tests {
             on dequeue(task) {
                 x = 12;
                 anotherx = 13;
+                y = x;
             }
         "#,
         )
@@ -82,5 +111,7 @@ mod tests {
         engine.eval(&mut task);
         assert_int_var!(engine, "x", 12);
         assert_int_var!(engine, "anotherx", 13);
+        assert_int_var!(engine, "y", 12);
+        assert_eq!(engine.arg.name, "task");
     }
 }
