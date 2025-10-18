@@ -8,3 +8,4 @@ itertools = "0.14"
 pest = "2.7"
 pest_derive = "2.7"
 anyhow = "1.0"
+clap = { version = "3.2", features = ["derive"] }
