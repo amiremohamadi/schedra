@@ -3,7 +3,7 @@ use std::collections::HashMap;
 
 use crate::parser::ast;
 use crate::parser::{
-    Assignment, BinaryExpr, Expr, ExprOp, Hook, Identifier, IntegerLiteral, Node, Statement,
+    Assignment, BinaryExpr, Expr, ExprOp, Identifier, IntegerLiteral, Node, Statement,
 };
 use anyhow::{Result, anyhow};
 use pest::Span;
@@ -13,25 +13,44 @@ pub struct DispatchedTask {
     pub pid: i32,
 }
 
-pub struct Engine<'a> {
+pub enum ArgValue<'a> {
+    Task(&'a DispatchedTask),
+}
+
+pub struct Arg<'a> {
+    pub name: &'a str,
+    pub value: ArgValue<'a>,
+}
+
+pub struct Hook<'a> {
     pub statements: Vec<Statement<'a>>,
-    pub arg: Identifier<'a>,
+    pub args: Vec<Arg<'a>>,
+}
+
+pub struct Engine<'a> {
+    pub hooks: HashMap<&'a str, Hook<'a>>,
+    // TODO: bound variables to scopes
     pub vars: RefCell<HashMap<&'a str, Box<Expr<'a>>>>,
     pub global_vars: RefCell<HashMap<&'a str, Expr<'a>>>,
 }
 
 impl<'a> Engine<'a> {
     pub fn init(buf: &'a str) -> Result<Self> {
+        let mut hooks = HashMap::new();
+
         let parsed = ast::parse(buf)?;
-        let hook = parsed
-            .hooks
-            .into_iter()
-            .find(|h| h.attach_point.name == "dequeue")
-            .ok_or_else(|| anyhow!("script should contain \"dequeue\" hook"))?;
+        let hook = parsed.hooks.into_iter().for_each(|h| {
+            hooks.insert(
+                h.attach_point.name,
+                Hook {
+                    statements: h.block.statements,
+                    args: vec![],
+                },
+            );
+        });
 
         Ok(Self {
-            statements: hook.block.statements,
-            arg: hook.arg,
+            hooks,
             vars: RefCell::new(HashMap::new()),
             global_vars: RefCell::new(HashMap::new()),
         })
@@ -93,16 +112,34 @@ impl<'a> Engine<'a> {
             .insert(assign.lvalue.name, Box::new(expr));
     }
 
-    pub fn eval(&self, task: &mut DispatchedTask) {
-        let statements = &self.statements;
-
+    fn block_eval(&self, statements: &Vec<Statement<'a>>) -> Result<()> {
         for stmt in statements.iter() {
             match stmt {
-                Statement::Assignment(assign) => self.assignment_eval(assign),
+                Statement::Assignment(asgn) => self.assignment_eval(asgn),
                 _ => {} // skip
             }
         }
+        Ok(())
     }
+
+    pub fn hook_eval(&self, name: &'a str) -> Result<()> {
+        let hook = match self.hooks.get(name) {
+            Some(h) => h,
+            None => return Err(anyhow!("hook '{}' not found!", name)),
+        };
+        self.block_eval(&hook.statements)
+    }
+
+    // pub fn eval(&self, task: &mut DispatchedTask) {
+    //     let statements = &self.statements;
+
+    //     for stmt in statements.iter() {
+    //         match stmt {
+    //             Statement::Assignment(assign) => self.assignment_eval(assign),
+    //             _ => {} // skip
+    //         }
+    //     }
+    // }
 }
 
 #[cfg(test)]
@@ -129,7 +166,7 @@ mod tests {
             on dequeue(task) {
                 x = 12;
                 anotherx = 13;
-                y = x;
+                y = x; // comment
                 z = 1 + 2 - 1 * 3;
                 true = 1 || 0;
                 false = 12 && 0;
@@ -140,13 +177,13 @@ mod tests {
 
         let mut task = DispatchedTask::default();
 
-        engine.eval(&mut task);
+        assert!(engine.hook_eval("monitor").is_err());
+        assert!(engine.hook_eval("dequeue").is_ok());
         assert_int_var!(engine, "x", 12);
         assert_int_var!(engine, "anotherx", 13);
         assert_int_var!(engine, "y", 12);
         assert_int_var!(engine, "z", 0);
         assert_int_var!(engine, "true", 1);
         assert_int_var!(engine, "false", 0);
-        assert_eq!(engine.arg.name, "task");
     }
 }
