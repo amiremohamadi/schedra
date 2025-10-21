@@ -241,6 +241,7 @@ impl<'a> Node<'a> for Block<'a> {
 #[derive(Debug, Clone)]
 pub struct Program<'a> {
     pub hooks: Vec<Hook<'a>>,
+    pub assigns: Vec<Assignment<'a>>,
     pub span: Span<'a>,
 }
 

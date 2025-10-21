@@ -145,14 +145,26 @@ fn convert_hook(pair: Pair<Rule>) -> Hook {
 fn convert_prog(pair: Pair<Rule>) -> Program {
     assert!(matches!(pair.as_rule(), Rule::program));
     let span = pair.as_span();
-    let hooks = pair
-        .into_inner()
-        .filter_map(|p| match p.as_rule() {
-            Rule::hook => Some(convert_hook(p)),
-            _ => None,
-        })
-        .collect();
-    Program { hooks, span }
+
+    let mut hooks = Vec::new();
+    let mut assigns = Vec::new();
+    pair.into_inner().for_each(|p| match p.as_rule() {
+        Rule::hook => hooks.push(convert_hook(p)),
+        Rule::statement => {
+            let stmt = convert_statement(p);
+            match stmt {
+                Statement::Assignment(a) => assigns.push(*a),
+                _ => {} // TODO: handle rest of statements
+            }
+        }
+        _ => {}
+    });
+
+    Program {
+        hooks,
+        assigns,
+        span,
+    }
 }
 
 pub fn parse(input: &str) -> Result<Program<'_>> {

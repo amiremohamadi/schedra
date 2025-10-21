@@ -34,4 +34,4 @@ statement  =  { base_stmt ~ ";" }
 block      =  { "{" ~ statement* ~ "}" }
 hook       =  { "on" ~ identifier ~ "(" ~ identifier ~ ")" ~ block }
 
-program    = { SOI ~ hook* ~ EOI }
+program    = { SOI ~  (hook | statement)* ~ EOI }

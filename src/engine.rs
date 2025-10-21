@@ -39,7 +39,7 @@ impl<'a> Engine<'a> {
         let mut hooks = HashMap::new();
 
         let parsed = ast::parse(buf)?;
-        let hook = parsed.hooks.into_iter().for_each(|h| {
+        parsed.hooks.into_iter().for_each(|h| {
             hooks.insert(
                 h.attach_point.name,
                 Hook {
@@ -49,11 +49,17 @@ impl<'a> Engine<'a> {
             );
         });
 
-        Ok(Self {
+        let mut engine = Self {
             hooks,
             vars: RefCell::new(HashMap::new()),
             global_vars: RefCell::new(HashMap::new()),
-        })
+        };
+
+        parsed.assigns.into_iter().for_each(|a| {
+            engine.global_assignment_eval(a);
+        });
+
+        Ok(engine)
     }
 
     fn resolve_ident(&self, name: &'a str) -> i64 {
@@ -105,11 +111,24 @@ impl<'a> Engine<'a> {
         }
     }
 
+    fn global_assignment_eval(&self, assign: Assignment<'a>) {
+        let expr = self.expr_eval(&assign.rvalue);
+        self.global_vars
+            .borrow_mut()
+            .insert(assign.lvalue.name, expr);
+    }
+
     fn assignment_eval(&self, assign: &Box<Assignment<'a>>) {
         let expr = self.expr_eval(&assign.rvalue);
-        self.vars
-            .borrow_mut()
-            .insert(assign.lvalue.name, Box::new(expr));
+        if self.global_vars.borrow().contains_key(assign.lvalue.name) {
+            self.global_vars
+                .borrow_mut()
+                .insert(assign.lvalue.name, expr);
+        } else {
+            self.vars
+                .borrow_mut()
+                .insert(assign.lvalue.name, Box::new(expr));
+        }
     }
 
     fn block_eval(&self, statements: &Vec<Statement<'a>>) -> Result<()> {
@@ -163,6 +182,8 @@ mod tests {
     fn test_smoke() {
         let mut engine = Engine::init(
             r#"
+            global_var1 = 69;
+
             on dequeue(task) {
                 x = 12;
                 anotherx = 13;
@@ -170,6 +191,8 @@ mod tests {
                 z = 1 + 2 - 1 * 3;
                 true = 1 || 0;
                 false = 12 && 0;
+
+                global_var1 = 55;
             }
         "#,
         )
@@ -185,5 +208,11 @@ mod tests {
         assert_int_var!(engine, "z", 0);
         assert_int_var!(engine, "true", 1);
         assert_int_var!(engine, "false", 0);
+
+        let global_vars = engine.global_vars.borrow();
+        match global_vars.get("global_var1") {
+            Some(Expr::Integer(e)) => assert_eq!(e.value, 55),
+            _ => panic!("global variable not found."),
+        }
     }
 }
