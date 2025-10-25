@@ -18,6 +18,7 @@ fn test_smoke() {
         on dequeue(task) {
             x = 2;
             y = 2 + 3;
+            object.field_x = 69;
         }
     "#,
     );

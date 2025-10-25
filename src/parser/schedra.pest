@@ -6,10 +6,13 @@ identifier = @{ (ASCII_ALPHANUMERIC | "_")+ }
 string     = @{ "\"" ~ (!"\"" ~ ANY)* ~ "\"" }
 number     = @{ ASCII_DIGIT+ }
 
+scope_access = { identifier ~ "." ~ identifier }
+
 primary   =  {
     string
   | number
   | identifier
+  | scope_access
 }
 expr      =  { primary ~ (infix ~ primary)* }
 infix     = _{ add | sub | mul | div | le | lt | ge | gt | eq | ne | and | or }
@@ -27,7 +30,7 @@ and       =  { "&&" }
 or        =  { "||" }
 
 assign_op  =  { "=" | "+=" | "-=" }
-assignment =  { identifier ~ assign_op ~ expr }
+assignment =  { (scope_access | identifier) ~ assign_op ~ expr }
 base_stmt  = _{ assignment | expr }
 statement  =  { base_stmt ~ ";" }
 

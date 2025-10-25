@@ -36,6 +36,21 @@ fn convert_ident(pair: Pair<Rule>) -> Identifier {
     }
 }
 
+fn convert_scope_access(pair: Pair<Rule>) -> ScopeAccess {
+    assert!(matches!(pair.as_rule(), Rule::scope_access));
+    let span = pair.as_span();
+
+    let mut pairs = pair.into_inner();
+    let name = convert_ident(pairs.next().unwrap());
+    let field = convert_ident(pairs.next().unwrap());
+
+    ScopeAccess {
+        name: name.name,
+        field: field.name,
+        span,
+    }
+}
+
 fn convert_primary_expr(pair: Pair<Rule>) -> Expr {
     assert!(matches!(pair.as_rule(), Rule::primary));
     let pair = pair.into_inner().exactly_one().unwrap();
@@ -91,7 +106,11 @@ fn convert_assignment(pair: Pair<Rule>) -> Assignment {
     let span = pair.as_span();
     let (lvalue, op, rvalue) = pair.into_inner().collect_tuple().unwrap();
 
-    let lvalue = convert_ident(lvalue);
+    let lvalue = match lvalue.as_rule() {
+        Rule::identifier => Lvalue::Identifier(Box::new(convert_ident(lvalue))),
+        Rule::scope_access => Lvalue::ScopeAccess(Box::new(convert_scope_access(lvalue))),
+        _ => unreachable!(),
+    };
     let _op = convert_assign_op(op);
     let rvalue = convert_expr(rvalue);
 

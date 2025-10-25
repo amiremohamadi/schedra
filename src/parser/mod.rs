@@ -3,6 +3,7 @@ mod test;
 
 use crate::parser::ast::Rule;
 use pest::Span;
+use std::collections::HashMap;
 use std::iter::FilterMap;
 
 pub trait Node<'a> {
@@ -35,6 +36,23 @@ impl<'a> Node<'a> for Identifier<'a> {
 }
 
 #[derive(Debug, Clone)]
+pub struct ScopeAccess<'a> {
+    pub name: &'a str,
+    pub field: &'a str,
+    pub span: Span<'a>,
+}
+
+impl<'a> Node<'a> for ScopeAccess<'a> {
+    fn as_node(&self) -> &dyn Node<'a> {
+        self
+    }
+
+    fn span(&self) -> Span<'a> {
+        self.span
+    }
+}
+
+#[derive(Debug, Clone)]
 pub struct StringLiteral<'a> {
     pub value: &'a str,
     pub span: Span<'a>,
@@ -57,6 +75,22 @@ pub struct IntegerLiteral<'a> {
 }
 
 impl<'a> Node<'a> for IntegerLiteral<'a> {
+    fn as_node(&self) -> &dyn Node<'a> {
+        self
+    }
+
+    fn span(&self) -> Span<'a> {
+        self.span
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct Object<'a> {
+    pub value: HashMap<&'a str, Expr<'a>>,
+    pub span: Span<'a>,
+}
+
+impl<'a> Node<'a> for Object<'a> {
     fn as_node(&self) -> &dyn Node<'a> {
         self
     }
@@ -143,6 +177,7 @@ pub enum Expr<'a> {
     String(Box<StringLiteral<'a>>),
     BinaryExpr(Box<BinaryExpr<'a>>),
     UnaryExpr(Box<UnaryExpr<'a>>),
+    Object(Box<Object<'a>>),
 }
 
 impl<'a> Node<'a> for Expr<'a> {
@@ -157,6 +192,7 @@ impl<'a> Node<'a> for Expr<'a> {
             Self::Identifier(ident) => ident.span(),
             Self::BinaryExpr(expr) => expr.span(),
             Self::UnaryExpr(expr) => expr.span(),
+            Self::Object(expr) => expr.span(),
         }
     }
 }
@@ -169,8 +205,14 @@ pub enum AssignOp {
 }
 
 #[derive(Debug, Clone)]
+pub enum Lvalue<'a> {
+    Identifier(Box<Identifier<'a>>),
+    ScopeAccess(Box<ScopeAccess<'a>>),
+}
+
+#[derive(Debug, Clone)]
 pub struct Assignment<'a> {
-    pub lvalue: Box<Identifier<'a>>,
+    pub lvalue: Box<Lvalue<'a>>,
     pub rvalue: Box<Expr<'a>>,
     pub span: Span<'a>,
 }
