@@ -228,9 +228,27 @@ impl<'a> Node<'a> for Assignment<'a> {
 }
 
 #[derive(Debug, Clone)]
+pub struct Cond<'a> {
+    pub expr: Box<Expr<'a>>,
+    pub body: Box<Block<'a>>,
+    pub span: Span<'a>,
+}
+
+impl<'a> Node<'a> for Cond<'a> {
+    fn as_node(&self) -> &dyn Node<'a> {
+        self
+    }
+
+    fn span(&self) -> Span<'a> {
+        self.span
+    }
+}
+
+#[derive(Debug, Clone)]
 pub enum Statement<'a> {
     Assignment(Box<Assignment<'a>>),
     Expr(Box<Expr<'a>>),
+    Cond(Box<Cond<'a>>),
 }
 
 impl<'a> Node<'a> for Statement<'a> {
@@ -242,6 +260,7 @@ impl<'a> Node<'a> for Statement<'a> {
         match self {
             Self::Assignment(assign) => assign.span(),
             Self::Expr(e) => e.span(),
+            Self::Cond(c) => c.span(),
         }
     }
 }

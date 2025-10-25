@@ -32,7 +32,8 @@ or        =  { "||" }
 assign_op  =  { "=" | "+=" | "-=" }
 assignment =  { (scope_access | identifier) ~ assign_op ~ expr }
 base_stmt  = _{ assignment | expr }
-statement  =  { base_stmt ~ ";" }
+condition  =  { "if" ~ expr ~ block }
+statement  =  { (condition | base_stmt ~ ";") }
 
 block      =  { "{" ~ statement* ~ "}" }
 hook       =  { "on" ~ identifier ~ "(" ~ identifier ~ ")" ~ block }

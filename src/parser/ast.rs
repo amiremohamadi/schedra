@@ -121,12 +121,24 @@ fn convert_assignment(pair: Pair<Rule>) -> Assignment {
     }
 }
 
+fn convert_cond(pair: Pair<Rule>) -> Cond {
+    assert!(matches!(pair.as_rule(), Rule::condition));
+    let span = pair.as_span();
+    let mut pairs = pair.into_inner();
+
+    let expr = Box::new(convert_expr(pairs.next().unwrap()));
+    let body = Box::new(convert_block(pairs.next().unwrap()));
+
+    Cond { expr, body, span }
+}
+
 fn convert_statement(pair: Pair<Rule>) -> Statement {
     assert!(matches!(pair.as_rule(), Rule::statement));
     let pair = pair.into_inner().exactly_one().unwrap();
     match pair.as_rule() {
         Rule::assignment => Statement::Assignment(Box::new(convert_assignment(pair))),
         Rule::expr => Statement::Expr(Box::new(convert_expr(pair))),
+        Rule::condition => Statement::Cond(Box::new(convert_cond(pair))),
         _ => unreachable!(),
     }
 }

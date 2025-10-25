@@ -3,7 +3,7 @@ use std::collections::HashMap;
 
 use crate::parser::ast;
 use crate::parser::{
-    Assignment, BinaryExpr, Expr, ExprOp, Identifier, IntegerLiteral, Lvalue, Node, Object,
+    Assignment, BinaryExpr, Cond, Expr, ExprOp, Identifier, IntegerLiteral, Lvalue, Node, Object,
     Statement,
 };
 use anyhow::{Result, anyhow};
@@ -155,10 +155,24 @@ impl<'a> Engine<'a> {
         }
     }
 
+    fn cond_eval(&self, cond: &Box<Cond<'a>>) -> Result<()> {
+        let expr = self.expr_eval(&cond.expr);
+        match expr {
+            Expr::Integer(n) => {
+                if n.value != 0 {
+                    self.block_eval(&cond.body.statements)?;
+                }
+            }
+            _ => {} // TODO: support more types
+        }
+        Ok(())
+    }
+
     fn block_eval(&self, statements: &Vec<Statement<'a>>) -> Result<()> {
         for stmt in statements.iter() {
             match stmt {
                 Statement::Assignment(asgn) => self.assignment_eval(asgn),
+                Statement::Cond(cond) => self.cond_eval(cond)?,
                 _ => {} // skip
             }
         }
@@ -220,6 +234,10 @@ mod tests {
 
                 task.dispatch = 1;
                 task.weight = 10;
+
+                if x > 1 {
+                    cond = 99;
+                }
             }
         "#,
         )
@@ -235,6 +253,7 @@ mod tests {
         assert_int_var!(engine, "z", 0);
         assert_int_var!(engine, "true", 1);
         assert_int_var!(engine, "false", 0);
+        assert_int_var!(engine, "cond", 99);
 
         let global_vars = engine.global_vars.borrow();
         match global_vars.get("global_var1") {
