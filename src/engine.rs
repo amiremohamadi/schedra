@@ -4,7 +4,7 @@ use std::collections::HashMap;
 use crate::parser::ast;
 use crate::parser::{
     Assignment, BinaryExpr, Cond, Expr, ExprOp, Identifier, IntegerLiteral, Lvalue, Node, Object,
-    Statement,
+    Statement, StringLiteral,
 };
 use anyhow::{Result, anyhow};
 use pest::Span;
@@ -77,16 +77,7 @@ impl<'a> Engine<'a> {
 
     fn resolve_ident(&self, name: &'a str, span: Span<'a>) -> Expr<'a> {
         match self.vars.borrow().get(name) {
-            Some(x) => {
-                match self.expr_eval(x) {
-                    Expr::Integer(n) => Expr::Integer(Box::new(IntegerLiteral {
-                        value: n.value,
-                        span,
-                    })),
-                    obj @ Expr::Object(_) => obj.clone(),
-                    _ => unreachable!(), // should never happen
-                }
-            }
+            Some(x) => self.expr_eval(x),
             None => Expr::Integer(Box::new(IntegerLiteral { value: 0, span })),
         }
     }
@@ -95,24 +86,37 @@ impl<'a> Engine<'a> {
         let lhs = self.expr_eval(&expr.lhs);
         let rhs = self.expr_eval(&expr.rhs);
         match (lhs, rhs) {
-            (Expr::Integer(l), Expr::Integer(r)) => {
-                let value = match &expr.op {
-                    ExprOp::Add => l.value + r.value,
-                    ExprOp::Sub => l.value - r.value,
-                    ExprOp::Mul => l.value * r.value,
-                    ExprOp::Div => l.value / r.value,
-                    ExprOp::Le => (l.value <= r.value) as i64,
-                    ExprOp::Lt => (l.value < r.value) as i64,
-                    ExprOp::Ge => (l.value >= r.value) as i64,
-                    ExprOp::Gt => (l.value > r.value) as i64,
-                    ExprOp::Eq => (l.value == r.value) as i64,
-                    ExprOp::Ne => (l.value != r.value) as i64,
-                    ExprOp::And => (l.value != 0 && r.value != 0) as i64,
-                    ExprOp::Or => (l.value != 0 || r.value != 0) as i64,
-                };
-                Expr::Integer(Box::new(IntegerLiteral { value, span }))
-            }
+            (Expr::Integer(l), Expr::Integer(r)) => Expr::Integer(Box::new(IntegerLiteral {
+                value: Self::eval_int_op(&expr.op, l.value, r.value),
+                span,
+            })),
+            (Expr::String(l), Expr::String(r)) => Self::eval_str_op(&expr.op, &l.value, &r.value, span),
             _ => unimplemented!(), // binary expressions are not supported on other types
+        }
+    }
+
+    fn eval_int_op(op: &ExprOp, l: i64, r: i64) -> i64 {
+        match op {
+            ExprOp::Add => l + r,
+            ExprOp::Sub => l - r,
+            ExprOp::Mul => l * r,
+            ExprOp::Div => l / r,
+            ExprOp::Le => (l <= r) as i64,
+            ExprOp::Lt => (l < r) as i64,
+            ExprOp::Ge => (l >= r) as i64,
+            ExprOp::Gt => (l > r) as i64,
+            ExprOp::Eq => (l == r) as i64,
+            ExprOp::Ne => (l != r) as i64,
+            ExprOp::And => (l != 0 && r != 0) as i64,
+            ExprOp::Or => (l != 0 || r != 0) as i64,
+        }
+    }
+
+    fn eval_str_op(op: &ExprOp, l: &str, r: &str, span: Span<'a>) -> Expr<'a> {
+        match op {
+            ExprOp::Eq => Expr::Integer(Box::new(IntegerLiteral { value: (l == r) as i64, span })),
+            ExprOp::Ne => Expr::Integer(Box::new(IntegerLiteral { value: (l != r) as i64, span })),
+            _ => unimplemented!(), 
         }
     }
 
@@ -162,7 +166,12 @@ impl<'a> Engine<'a> {
                 if n.value != 0 {
                     self.block_eval(&cond.body.statements)?;
                 }
-            }
+            },
+            Expr::String(n) => {
+                if n.value != "" {
+                    self.block_eval(&cond.body.statements)?;
+                }
+            },
             _ => {} // TODO: support more types
         }
         Ok(())
@@ -204,14 +213,26 @@ mod tests {
     use super::*;
     use crate::parser::*;
 
-    macro_rules! assert_int_var {
+    enum Expected<'a> {
+        Int(i64),
+        Str(&'a str),
+    }
+    
+    macro_rules! assert_var {
         ($engine:expr, $var:expr, $expected:expr) => {
             match $engine.vars.borrow_mut().get($var) {
                 Some(boxed) => match boxed.as_ref() {
-                    Expr::Integer(expr) => assert_eq!(expr.value, $expected),
-                    _ => panic!("variable '{}' is not an integer", $var),
+                    Expr::Integer(expr) => match $expected {
+                        Expected::Int(v) => assert_eq!(expr.value, v, "variable '{}' mismatch", $var),
+                        _ => panic!("Expected type mismatch for variable '{}'", $var),
+                    },
+                    Expr::String(expr) => match $expected {
+                        Expected::Str(v) => assert_eq!(expr.value, v, "variable '{}' mismatch", $var),
+                        _ => panic!("Expected type mismatch for variable '{}'", $var),
+                    },
+                    _ => panic!("variable '{}' has unsupported type", $var),
                 },
-                _ => panic!("variable '{}' doesn't exist", $var),
+                None => panic!("variable '{}' doesn't exist", $var),
             }
         };
     }
@@ -225,6 +246,8 @@ mod tests {
             on dequeue(task) {
                 x = 12;
                 anotherx = 13;
+                name = "schedra";
+
                 y = x; // comment
                 z = 1 + 2 - 1 * 3;
                 true = 1 || 0;
@@ -238,6 +261,14 @@ mod tests {
                 if x > 1 {
                     cond = 99;
                 }
+
+                if name == "schedra" {
+                    conds = 10;
+                }
+
+                if name {
+                    condt = 15;
+                }
             }
         "#,
         )
@@ -247,13 +278,17 @@ mod tests {
 
         assert!(engine.hook_eval("monitor").is_err());
         assert!(engine.hook_eval("dequeue").is_ok());
-        assert_int_var!(engine, "x", 12);
-        assert_int_var!(engine, "anotherx", 13);
-        assert_int_var!(engine, "y", 12);
-        assert_int_var!(engine, "z", 0);
-        assert_int_var!(engine, "true", 1);
-        assert_int_var!(engine, "false", 0);
-        assert_int_var!(engine, "cond", 99);
+        assert_var!(engine, "x", Expected::Int(12));
+        assert_var!(engine, "anotherx", Expected::Int(13));
+        assert_var!(engine, "name", Expected::Str("schedra"));
+        assert_var!(engine, "y", Expected::Int(12));
+        assert_var!(engine, "z", Expected::Int(0));
+        assert_var!(engine, "true", Expected::Int(1));
+        assert_var!(engine, "false", Expected::Int(0));
+        assert_var!(engine, "cond", Expected::Int(99));
+        assert_var!(engine, "conds", Expected::Int(10));
+        assert_var!(engine, "condt", Expected::Int(15));
+        
 
         let global_vars = engine.global_vars.borrow();
         match global_vars.get("global_var1") {

@@ -3,7 +3,8 @@ COMMENT    = _{ "//" ~ (!NEWLINE ~ ANY)* ~ NEWLINE? }
 NEWLINE    = _{ "\r\n" | "\n" }
 
 identifier = @{ (ASCII_ALPHANUMERIC | "_")+ }
-string     = @{ "\"" ~ (!"\"" ~ ANY)* ~ "\"" }
+string     = { "\"" ~ inner_string ~ "\"" }
+inner_string = @{ (!"\"" ~ ANY)* }
 number     = @{ ASCII_DIGIT+ }
 
 scope_access = { identifier ~ "." ~ identifier }

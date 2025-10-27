@@ -21,9 +21,10 @@ fn convert_int(pair: Pair<Rule>) -> IntegerLiteral {
 
 fn convert_str(pair: Pair<Rule>) -> StringLiteral {
     assert!(matches!(pair.as_rule(), Rule::string));
-    let span = pair.as_span();
+    let inner = pair.into_inner().next().unwrap();
+    let span = inner.as_span();
     StringLiteral {
-        value: pair.as_str(),
+        value: inner.as_str(), 
         span,
     }
 }
