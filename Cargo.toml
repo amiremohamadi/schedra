@@ -9,3 +9,14 @@ pest = "2.7"
 pest_derive = "2.7"
 anyhow = "1.0"
 clap = { version = "3.2", features = ["derive"] }
+libbpf-rs = "0.25"
+scx_utils = "1.0"
+scx_rustland_core = "2.2"
+plain = "0.2"
+ctrlc = { version = "3.1", features = ["termination"] }
+libc = "0.2"
+procfs = "0.18"
+
+[build-dependencies]
+scx_utils = "1.0"
+scx_rustland_core = "2.2"

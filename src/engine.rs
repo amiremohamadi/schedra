@@ -20,7 +20,7 @@ pub enum ArgValue<'a> {
 
 pub struct Arg<'a> {
     pub name: &'a str,
-    pub value: HashMap<&'a str, Expr<'a>>,
+    pub value: RefCell<HashMap<&'a str, Expr<'a>>>,
     pub span: Span<'a>,
 }
 
@@ -29,7 +29,7 @@ impl<'a> Arg<'a> {
         Self {
             name,
             span,
-            value: HashMap::new(),
+            value: RefCell::new(HashMap::new()),
         }
     }
 }
@@ -75,6 +75,15 @@ impl<'a> Engine<'a> {
         Ok(engine)
     }
 
+    pub fn set_hook_arg(&mut self, name: &'a str, value: HashMap<&'a str, Expr<'a>>) {
+        let hook = self.hooks.get(name).unwrap(); // FIXME
+        *hook.arg.value.borrow_mut() = value;
+    }
+
+    pub fn get_hook(&self, name: &'a str) -> &Hook<'a> {
+        self.hooks.get(name).unwrap() // FIXME
+    }
+
     fn resolve_ident(&self, name: &'a str, span: Span<'a>) -> Expr<'a> {
         match self.vars.borrow().get(name) {
             Some(x) => self.expr_eval(x),
@@ -90,7 +99,9 @@ impl<'a> Engine<'a> {
                 value: Self::eval_int_op(&expr.op, l.value, r.value),
                 span,
             })),
-            (Expr::String(l), Expr::String(r)) => Self::eval_str_op(&expr.op, &l.value, &r.value, span),
+            (Expr::String(l), Expr::String(r)) => {
+                Self::eval_str_op(&expr.op, &l.value, &r.value, span)
+            }
             _ => unimplemented!(), // binary expressions are not supported on other types
         }
     }
@@ -114,9 +125,15 @@ impl<'a> Engine<'a> {
 
     fn eval_str_op(op: &ExprOp, l: &str, r: &str, span: Span<'a>) -> Expr<'a> {
         match op {
-            ExprOp::Eq => Expr::Integer(Box::new(IntegerLiteral { value: (l == r) as i64, span })),
-            ExprOp::Ne => Expr::Integer(Box::new(IntegerLiteral { value: (l != r) as i64, span })),
-            _ => unimplemented!(), 
+            ExprOp::Eq => Expr::Integer(Box::new(IntegerLiteral {
+                value: (l == r) as i64,
+                span,
+            })),
+            ExprOp::Ne => Expr::Integer(Box::new(IntegerLiteral {
+                value: (l != r) as i64,
+                span,
+            })),
+            _ => unimplemented!(),
         }
     }
 
@@ -166,12 +183,12 @@ impl<'a> Engine<'a> {
                 if n.value != 0 {
                     self.block_eval(&cond.body.statements)?;
                 }
-            },
+            }
             Expr::String(n) => {
                 if n.value != "" {
                     self.block_eval(&cond.body.statements)?;
                 }
-            },
+            }
             _ => {} // TODO: support more types
         }
         Ok(())
@@ -196,7 +213,7 @@ impl<'a> Engine<'a> {
         // initialize hook argument
         {
             let value = Expr::Object(Box::new(Object {
-                value: hook.arg.value.clone(),
+                value: hook.arg.value.borrow().clone(),
                 span: hook.arg.span,
             }));
 
@@ -205,6 +222,22 @@ impl<'a> Engine<'a> {
                 .insert(hook.arg.name, Box::new(value));
         }
         self.block_eval(&hook.statements)
+    }
+
+    pub fn eval(&self, hook: &Hook<'a>) -> Result<HashMap<&'a str, Expr<'a>>> {
+        // initialize hook argument
+        let value = Expr::Object(Box::new(Object {
+            value: hook.arg.value.borrow().clone(),
+            span: hook.arg.span,
+        }));
+
+        self.vars
+            .borrow_mut()
+            .insert(hook.arg.name, Box::new(value));
+
+        self.block_eval(&hook.statements)?;
+
+        Ok(HashMap::new())
     }
 }
 
@@ -217,17 +250,21 @@ mod tests {
         Int(i64),
         Str(&'a str),
     }
-    
+
     macro_rules! assert_var {
         ($engine:expr, $var:expr, $expected:expr) => {
             match $engine.vars.borrow_mut().get($var) {
                 Some(boxed) => match boxed.as_ref() {
                     Expr::Integer(expr) => match $expected {
-                        Expected::Int(v) => assert_eq!(expr.value, v, "variable '{}' mismatch", $var),
+                        Expected::Int(v) => {
+                            assert_eq!(expr.value, v, "variable '{}' mismatch", $var)
+                        }
                         _ => panic!("Expected type mismatch for variable '{}'", $var),
                     },
                     Expr::String(expr) => match $expected {
-                        Expected::Str(v) => assert_eq!(expr.value, v, "variable '{}' mismatch", $var),
+                        Expected::Str(v) => {
+                            assert_eq!(expr.value, v, "variable '{}' mismatch", $var)
+                        }
                         _ => panic!("Expected type mismatch for variable '{}'", $var),
                     },
                     _ => panic!("variable '{}' has unsupported type", $var),
@@ -288,7 +325,6 @@ mod tests {
         assert_var!(engine, "cond", Expected::Int(99));
         assert_var!(engine, "conds", Expected::Int(10));
         assert_var!(engine, "condt", Expected::Int(15));
-        
 
         let global_vars = engine.global_vars.borrow();
         match global_vars.get("global_var1") {
