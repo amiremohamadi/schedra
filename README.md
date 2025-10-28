@@ -1,4 +1,4 @@
-<p align="center"><img src="./.github/logo.png"></p>
+<p align="center"><img src="./docs/logo.png"></p>
 
 # Schedra
 scripting language for linux kernel scheduler.
@@ -21,6 +21,7 @@ on dequeue(task) {
   }
 }
 ```
+see the [reference guide](./docs/reference_guide.md) for more details.
 
 ## Roadmap
 - [ ] JIT compilation
