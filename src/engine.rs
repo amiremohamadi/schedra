@@ -3,8 +3,8 @@ use std::collections::HashMap;
 
 use crate::parser::ast;
 use crate::parser::{
-    Assignment, BinaryExpr, Cond, Expr, ExprOp, Identifier, IntegerLiteral, Lvalue, Node, Object,
-    ScopeAccess, Statement, StringLiteral,
+    Assignment, BinaryExpr, Cond, Expr, ExprOp, IntegerLiteral, Lvalue, Node, Object,
+    ScopeAccess, Statement,
 };
 use anyhow::{Result, anyhow};
 use pest::Span;
@@ -53,7 +53,7 @@ impl<'a> Engine<'a> {
             );
         });
 
-        let mut engine = Self {
+        let engine = Self {
             hooks,
             vars: RefCell::new(HashMap::new()),
             global_vars: RefCell::new(HashMap::new()),
@@ -64,11 +64,6 @@ impl<'a> Engine<'a> {
         });
 
         Ok(engine)
-    }
-
-    pub fn set_hook_arg(&mut self, name: &'a str, value: HashMap<&'a str, Expr<'a>>) {
-        let hook = self.hooks.get(name).unwrap(); // FIXME
-        *hook.arg.value.borrow_mut() = value;
     }
 
     pub fn get_hook(&self, name: &'a str) -> &Hook<'a> {

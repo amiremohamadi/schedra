@@ -4,19 +4,9 @@ mod test;
 use crate::parser::ast::Rule;
 use pest::Span;
 use std::collections::HashMap;
-use std::iter::FilterMap;
 
 pub trait Node<'a> {
-    fn as_node(&self) -> &dyn Node<'a>;
     fn span(&self) -> Span<'a>;
-
-    fn as_statement(&self) -> Option<&Statement<'a>> {
-        None
-    }
-
-    fn as_expr(&self) -> Option<&Expr<'a>> {
-        None
-    }
 }
 
 #[derive(Debug, Clone)]
@@ -26,10 +16,6 @@ pub struct Identifier<'a> {
 }
 
 impl<'a> Node<'a> for Identifier<'a> {
-    fn as_node(&self) -> &dyn Node<'a> {
-        self
-    }
-
     fn span(&self) -> Span<'a> {
         self.span
     }
@@ -43,10 +29,6 @@ pub struct ScopeAccess<'a> {
 }
 
 impl<'a> Node<'a> for ScopeAccess<'a> {
-    fn as_node(&self) -> &dyn Node<'a> {
-        self
-    }
-
     fn span(&self) -> Span<'a> {
         self.span
     }
@@ -59,10 +41,6 @@ pub struct StringLiteral<'a> {
 }
 
 impl<'a> Node<'a> for StringLiteral<'a> {
-    fn as_node(&self) -> &dyn Node<'a> {
-        self
-    }
-
     fn span(&self) -> Span<'a> {
         self.span
     }
@@ -75,10 +53,6 @@ pub struct IntegerLiteral<'a> {
 }
 
 impl<'a> Node<'a> for IntegerLiteral<'a> {
-    fn as_node(&self) -> &dyn Node<'a> {
-        self
-    }
-
     fn span(&self) -> Span<'a> {
         self.span
     }
@@ -91,10 +65,6 @@ pub struct Object<'a> {
 }
 
 impl<'a> Node<'a> for Object<'a> {
-    fn as_node(&self) -> &dyn Node<'a> {
-        self
-    }
-
     fn span(&self) -> Span<'a> {
         self.span
     }
@@ -145,26 +115,6 @@ pub struct BinaryExpr<'a> {
 }
 
 impl<'a> Node<'a> for BinaryExpr<'a> {
-    fn as_node(&self) -> &dyn Node<'a> {
-        self
-    }
-
-    fn span(&self) -> Span<'a> {
-        self.span
-    }
-}
-
-#[derive(Debug, Clone)]
-pub struct UnaryExpr<'a> {
-    pub expr: Box<Expr<'a>>,
-    pub span: Span<'a>,
-}
-
-impl<'a> Node<'a> for UnaryExpr<'a> {
-    fn as_node(&self) -> &dyn Node<'a> {
-        self
-    }
-
     fn span(&self) -> Span<'a> {
         self.span
     }
@@ -176,23 +126,17 @@ pub enum Expr<'a> {
     Integer(Box<IntegerLiteral<'a>>),
     String(Box<StringLiteral<'a>>),
     BinaryExpr(Box<BinaryExpr<'a>>),
-    UnaryExpr(Box<UnaryExpr<'a>>),
     Object(Box<Object<'a>>),
     ScopeAccess(Box<ScopeAccess<'a>>),
 }
 
 impl<'a> Node<'a> for Expr<'a> {
-    fn as_node(&self) -> &dyn Node<'a> {
-        self
-    }
-
     fn span(&self) -> Span<'a> {
         match self {
             Self::Integer(n) => n.span(),
             Self::String(s) => s.span(),
             Self::Identifier(ident) => ident.span(),
             Self::BinaryExpr(expr) => expr.span(),
-            Self::UnaryExpr(expr) => expr.span(),
             Self::Object(expr) => expr.span(),
             Self::ScopeAccess(expr) => expr.span(),
         }
@@ -202,8 +146,8 @@ impl<'a> Node<'a> for Expr<'a> {
 #[derive(Debug, Clone)]
 pub enum AssignOp {
     Assign,
-    AddAssign,
-    SubAssign,
+    // AddAssign,
+    // SubAssign,
 }
 
 #[derive(Debug, Clone)]
@@ -220,10 +164,6 @@ pub struct Assignment<'a> {
 }
 
 impl<'a> Node<'a> for Assignment<'a> {
-    fn as_node(&self) -> &dyn Node<'a> {
-        self
-    }
-
     fn span(&self) -> Span<'a> {
         self.span
     }
@@ -237,10 +177,6 @@ pub struct Cond<'a> {
 }
 
 impl<'a> Node<'a> for Cond<'a> {
-    fn as_node(&self) -> &dyn Node<'a> {
-        self
-    }
-
     fn span(&self) -> Span<'a> {
         self.span
     }
@@ -254,10 +190,6 @@ pub enum Statement<'a> {
 }
 
 impl<'a> Node<'a> for Statement<'a> {
-    fn as_node(&self) -> &dyn Node<'a> {
-        self
-    }
-
     fn span(&self) -> Span<'a> {
         match self {
             Self::Assignment(assign) => assign.span(),
@@ -276,10 +208,6 @@ pub struct Hook<'a> {
 }
 
 impl<'a> Node<'a> for Hook<'a> {
-    fn as_node(&self) -> &dyn Node<'a> {
-        self
-    }
-
     fn span(&self) -> Span<'a> {
         self.span
     }
@@ -292,10 +220,6 @@ pub struct Block<'a> {
 }
 
 impl<'a> Node<'a> for Block<'a> {
-    fn as_node(&self) -> &dyn Node<'a> {
-        self
-    }
-
     fn span(&self) -> Span<'a> {
         self.span
     }
@@ -309,10 +233,6 @@ pub struct Program<'a> {
 }
 
 impl<'a> Node<'a> for Program<'a> {
-    fn as_node(&self) -> &dyn Node<'a> {
-        self
-    }
-
     fn span(&self) -> Span<'a> {
         self.span
     }

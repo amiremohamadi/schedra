@@ -14,35 +14,35 @@ use std::ffi::c_int;
 use std::ffi::c_ulong;
 
 use std::collections::HashMap;
-use std::sync::atomic::AtomicBool;
-use std::sync::atomic::Ordering;
 use std::sync::Arc;
 use std::sync::Once;
+use std::sync::atomic::AtomicBool;
+use std::sync::atomic::Ordering;
 
-use anyhow::bail;
 use anyhow::Context;
 use anyhow::Result;
+use anyhow::bail;
 
 use plain::Plain;
 use procfs::process::all_processes;
 
-use libbpf_rs::libbpf_sys::bpf_object_open_opts;
 use libbpf_rs::OpenObject;
 use libbpf_rs::ProgramInput;
+use libbpf_rs::libbpf_sys::bpf_object_open_opts;
 
-use libc::{pthread_self, pthread_setschedparam, sched_param, c_char};
+use libc::{c_char, pthread_self, pthread_setschedparam, sched_param};
 
 #[cfg(target_env = "musl")]
 use libc::timespec;
 
+use scx_utils::Topology;
+use scx_utils::UserExitInfo;
 use scx_utils::compat;
 use scx_utils::scx_ops_attach;
 use scx_utils::scx_ops_load;
 use scx_utils::scx_ops_open;
 use scx_utils::uei_exited;
 use scx_utils::uei_report;
-use scx_utils::Topology;
-use scx_utils::UserExitInfo;
 
 use scx_rustland_core::ALLOCATOR;
 
@@ -78,15 +78,15 @@ pub const RL_CPU_ANY: i32 = bpf_intf::RL_CPU_ANY as i32;
 // Task queued for scheduling from the BPF component (see bpf_intf::queued_task_ctx).
 #[derive(Debug, PartialEq, Eq, PartialOrd, Clone)]
 pub struct QueuedTask {
-    pub pid: i32,                  // pid that uniquely identifies a task
-    pub cpu: i32,                  // CPU previously used by the task
-    pub nr_cpus_allowed: u64,      // Number of CPUs that the task can use
-    pub flags: u64,                // task's enqueue flags
-    pub start_ts: u64,             // Timestamp since last time the task ran on a CPU (in ns)
-    pub stop_ts: u64,              // Timestamp since last time the task released a CPU (in ns)
-    pub exec_runtime: u64,         // Total cpu time since last sleep (in ns)
-    pub weight: u64,               // Task priority in the range [1..10000] (default is 100)
-    pub vtime: u64,                // Current task vruntime / deadline (set by the scheduler)
+    pub pid: i32,                      // pid that uniquely identifies a task
+    pub cpu: i32,                      // CPU previously used by the task
+    pub nr_cpus_allowed: u64,          // Number of CPUs that the task can use
+    pub flags: u64,                    // task's enqueue flags
+    pub start_ts: u64,                 // Timestamp since last time the task ran on a CPU (in ns)
+    pub stop_ts: u64,                  // Timestamp since last time the task released a CPU (in ns)
+    pub exec_runtime: u64,             // Total cpu time since last sleep (in ns)
+    pub weight: u64,                   // Task priority in the range [1..10000] (default is 100)
+    pub vtime: u64,                    // Current task vruntime / deadline (set by the scheduler)
     pub comm: [c_char; TASK_COMM_LEN], // Task's executable name
 }
 

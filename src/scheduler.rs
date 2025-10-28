@@ -1,6 +1,5 @@
 use std::{
-    collections::HashMap, mem::MaybeUninit, sync::Arc, sync::atomic::AtomicBool,
-    sync::atomic::Ordering,
+    collections::HashMap, mem::MaybeUninit,
 };
 
 use anyhow::{Result, anyhow};
@@ -8,9 +7,8 @@ use libbpf_rs::OpenObject;
 use pest::Span;
 use scx_utils::UserExitInfo;
 
-use crate::bpf::bpf_skel::*;
 use crate::bpf::*;
-use crate::engine::{Engine, Hook};
+use crate::engine::Engine;
 use crate::parser::{Expr, IntegerLiteral};
 
 macro_rules! convert_expr {
@@ -26,13 +24,71 @@ macro_rules! convert_expr {
 }
 
 fn init_hook_arg<'a>(task: &QueuedTask, span: &Span<'a>) -> HashMap<&'a str, Expr<'a>> {
-    [(
-        "pid",
-        Expr::Integer(Box::new(IntegerLiteral {
-            value: task.pid.into(),
-            span: span.clone(),
-        })),
-    )]
+    [
+        (
+            "pid",
+            Expr::Integer(Box::new(IntegerLiteral {
+                value: task.pid as _,
+                span: span.clone(),
+            })),
+        ),
+        (
+            "cpu",
+            Expr::Integer(Box::new(IntegerLiteral {
+                value: task.cpu as _,
+                span: span.clone(),
+            })),
+        ),
+        (
+            "nr_cpus_allowed",
+            Expr::Integer(Box::new(IntegerLiteral {
+                value: task.nr_cpus_allowed as _,
+                span: span.clone(),
+            })),
+        ),
+        (
+            "flags",
+            Expr::Integer(Box::new(IntegerLiteral {
+                value: task.flags as _,
+                span: span.clone(),
+            })),
+        ),
+        (
+            "start_ts",
+            Expr::Integer(Box::new(IntegerLiteral {
+                value: task.start_ts as _,
+                span: span.clone(),
+            })),
+        ),
+        (
+            "stop_ts",
+            Expr::Integer(Box::new(IntegerLiteral {
+                value: task.stop_ts as _,
+                span: span.clone(),
+            })),
+        ),
+        (
+            "exec_runtime",
+            Expr::Integer(Box::new(IntegerLiteral {
+                value: task.exec_runtime as _,
+                span: span.clone(),
+            })),
+        ),
+        (
+            "weight",
+            Expr::Integer(Box::new(IntegerLiteral {
+                value: task.weight as _,
+                span: span.clone(),
+            })),
+        ),
+        (
+            "vtime",
+            Expr::Integer(Box::new(IntegerLiteral {
+                value: task.vtime as _,
+                span: span.clone(),
+            })),
+        ),
+    ]
     .into_iter()
     .collect::<HashMap<_, _>>()
 }
@@ -55,16 +111,20 @@ impl<'a> Scheduler<'a> {
             let arg = engine.eval(hook)?;
 
             let mut task = DispatchedTask::new(&task);
-            let mut dispatched = true;
+            let mut dispatch = true;
             for (key, val) in arg {
                 match key {
+                    "pid" => task.pid = convert_expr!(val)? as _,
                     "cpu" => task.cpu = convert_expr!(val)? as _,
-                    "dispatched" => dispatched = convert_expr!(val)? != 0,
+                    "flags" => task.flags = convert_expr!(val)? as _,
+                    "slice_ns" => task.slice_ns = convert_expr!(val)? as _,
+                    "vtime" => task.vtime = convert_expr!(val)? as _,
+                    "dispatch" => dispatch = convert_expr!(val)? != 0,
                     _ => {}
                 }
             }
 
-            if dispatched {
+            if dispatch {
                 self.bpf_scheduler.dispatch_task(&task).unwrap();
             }
         }

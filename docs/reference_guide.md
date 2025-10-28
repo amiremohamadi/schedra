@@ -2,6 +2,7 @@
 ```sh
 $ schedra <FILENAME>
 ```
+a program will continue running until ctrl-c is hit.
 
 ## Language
 each script consists of one or more hooks.
@@ -89,6 +90,44 @@ field access for the objects:
 on dequeue(task) {
   task.field1 = 69;
   if task.field2 > 10 { ... }
+}
+```
+
+### Hooks
+currently only `dequeue` hook is supported. it receives an object type argument with the following fields:
+
+| field              | description                                                     |
+|--------------------|-----------------------------------------------------------------|
+| `pid`              | pid that uniquely identifies a task                              |
+| `cpu`              | cpu previously used by the task                                  |
+| `nr_cpus_allowed`  | number of cpus that the task can use                             |
+| `flags`            | task's enqueue flags                                             |
+| `start_ts`         | timestamp since last time the task ran on a cpu (in ns)          |
+| `stop_ts`          | timestamp since last time the task released a cpu (in ns)        |
+| `exec_runtime`     | total cpu time since last sleep (in ns)                          |
+| `weight`           | task priority in the range [1..10000] (default is 100)           |
+| `vtime`            | current task vruntime / deadline (set by the scheduler)          |
+
+and the following fields can be modified
+
+| field        | description                                                                                   |
+|---------------|-----------------------------------------------------------------------------------------------
+| `pid`         | pid that uniquely identifies a task                                                          |
+| `cpu`         | target cpu selected by the scheduler (RL_CPU_ANY = dispatch on the first cpu available)      |
+| `flags`       | task's enqueue flags                                                                         |
+| `slice_ns`    | time slice in nanoseconds assigned to the task (0 = use default time slice)                  |
+| `vtime`       | value used to send the task's vruntime or deadline directly to the dispatcher                |
+
+example:
+```
+on dequeue(t) {
+  if t.pid == 9 {
+    t.cpu = 3;
+  }
+  if t.pid != 9 {
+    t.cpu = RL_CPU_ANY;
+  }
+  t.vtime = 10;
 }
 ```
 
