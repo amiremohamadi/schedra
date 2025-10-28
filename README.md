@@ -1,3 +1,5 @@
+<p align="center"><img src="./.github/logo.png"></p>
+
 # Schedra
 scripting language for linux kernel scheduler.
 
