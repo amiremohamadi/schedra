@@ -4,19 +4,10 @@ use std::collections::HashMap;
 use crate::parser::ast;
 use crate::parser::{
     Assignment, BinaryExpr, Cond, Expr, ExprOp, Identifier, IntegerLiteral, Lvalue, Node, Object,
-    Statement, StringLiteral,
+    ScopeAccess, Statement, StringLiteral,
 };
 use anyhow::{Result, anyhow};
 use pest::Span;
-
-#[derive(Debug, Default)]
-pub struct DispatchedTask {
-    pub pid: i32,
-}
-
-pub enum ArgValue<'a> {
-    Task(&'a DispatchedTask),
-}
 
 pub struct Arg<'a> {
     pub name: &'a str,
@@ -137,11 +128,32 @@ impl<'a> Engine<'a> {
         }
     }
 
+    fn scope_expr_eval(&self, scop: &Box<ScopeAccess<'a>>) -> Expr<'a> {
+        match self.vars.borrow().get(scop.name) {
+            Some(x) => match &**x {
+                Expr::Object(o) => match o.value.get(scop.field) {
+                    Some(v) => v.clone(),
+                    None => Expr::Integer(Box::new(IntegerLiteral {
+                        value: 0,
+                        span: scop.span(),
+                    })),
+                },
+                _ => unreachable!(),
+            },
+            // TODO: should raise error
+            None => Expr::Integer(Box::new(IntegerLiteral {
+                value: 0,
+                span: scop.span(),
+            })),
+        }
+    }
+
     fn expr_eval(&self, expr: &Box<Expr<'a>>) -> Expr<'a> {
         let span = expr.span();
         match &**expr {
             Expr::Identifier(ident) => self.resolve_ident(ident.name, span),
             Expr::BinaryExpr(expr) => self.binary_expr_eval(expr, span),
+            Expr::ScopeAccess(scop) => self.scope_expr_eval(scop),
             e => e.clone(),
         }
     }
@@ -304,18 +316,16 @@ mod tests {
                 }
 
                 if name == "schedra" {
-                    conds = 10;
+                    cond_str = 10;
                 }
 
-                if name {
-                    condt = 15;
+                if task.dispatch {
+                    cond_scope = 15;
                 }
             }
         "#,
         )
         .unwrap();
-
-        let mut task = DispatchedTask::default();
 
         assert!(engine.hook_eval("monitor").is_err());
         assert!(engine.hook_eval("dequeue").is_ok());
@@ -327,8 +337,8 @@ mod tests {
         assert_var!(engine, "true", Expected::Int(1));
         assert_var!(engine, "false", Expected::Int(0));
         assert_var!(engine, "cond", Expected::Int(99));
-        assert_var!(engine, "conds", Expected::Int(10));
-        assert_var!(engine, "condt", Expected::Int(15));
+        assert_var!(engine, "cond_str", Expected::Int(10));
+        assert_var!(engine, "cond_scope", Expected::Int(15));
 
         let global_vars = engine.global_vars.borrow();
         match global_vars.get("global_var1") {

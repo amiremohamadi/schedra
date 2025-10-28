@@ -178,6 +178,7 @@ pub enum Expr<'a> {
     BinaryExpr(Box<BinaryExpr<'a>>),
     UnaryExpr(Box<UnaryExpr<'a>>),
     Object(Box<Object<'a>>),
+    ScopeAccess(Box<ScopeAccess<'a>>),
 }
 
 impl<'a> Node<'a> for Expr<'a> {
@@ -193,6 +194,7 @@ impl<'a> Node<'a> for Expr<'a> {
             Self::BinaryExpr(expr) => expr.span(),
             Self::UnaryExpr(expr) => expr.span(),
             Self::Object(expr) => expr.span(),
+            Self::ScopeAccess(expr) => expr.span(),
         }
     }
 }

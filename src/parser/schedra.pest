@@ -12,8 +12,8 @@ scope_access = { identifier ~ "." ~ identifier }
 primary   =  {
     string
   | number
-  | identifier
   | scope_access
+  | identifier
 }
 expr      =  { primary ~ (infix ~ primary)* }
 infix     = _{ add | sub | mul | div | le | lt | ge | gt | eq | ne | and | or }

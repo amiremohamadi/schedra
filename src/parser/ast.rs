@@ -59,6 +59,7 @@ fn convert_primary_expr(pair: Pair<Rule>) -> Expr {
         Rule::identifier => Expr::Identifier(Box::new(convert_ident(pair))),
         Rule::number => Expr::Integer(Box::new(convert_int(pair))),
         Rule::string => Expr::String(Box::new(convert_str(pair))),
+        Rule::scope_access => Expr::ScopeAccess(Box::new(convert_scope_access(pair))),
         _ => unreachable!(),
     }
 }
