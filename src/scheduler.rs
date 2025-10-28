@@ -3,7 +3,7 @@ use std::{
     sync::atomic::Ordering,
 };
 
-use anyhow::Result;
+use anyhow::{Result, anyhow};
 use libbpf_rs::OpenObject;
 use pest::Span;
 use scx_utils::UserExitInfo;
@@ -12,6 +12,18 @@ use crate::bpf::*;
 use crate::bpf_skel::*;
 use crate::engine::{Engine, Hook};
 use crate::parser::{Expr, IntegerLiteral};
+
+macro_rules! convert_expr {
+    ($expr:expr) => {{
+        match $expr {
+            Expr::Integer(b) => {
+                let IntegerLiteral { value, .. } = *b;
+                Ok(value)
+            }
+            _ => Err(anyhow!("expected Expr::Int")),
+        }
+    }};
+}
 
 fn init_hook_arg<'a>(task: &QueuedTask, span: &Span<'a>) -> HashMap<&'a str, Expr<'a>> {
     [(
@@ -43,15 +55,18 @@ impl<'a> Scheduler<'a> {
             let arg = engine.eval(hook)?;
 
             let mut task = DispatchedTask::new(&task);
-
+            let mut dispatched = true;
             for (key, val) in arg {
                 match key {
-                    "slice" => {}
+                    "cpu" => task.cpu = convert_expr!(val)? as _,
+                    "dispatched" => dispatched = convert_expr!(val)? != 0,
                     _ => {}
                 }
             }
 
-            self.bpf_scheduler.dispatch_task(&task).unwrap();
+            if dispatched {
+                self.bpf_scheduler.dispatch_task(&task).unwrap();
+            }
         }
 
         self.bpf_scheduler.notify_complete(0);

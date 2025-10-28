@@ -237,7 +237,11 @@ impl<'a> Engine<'a> {
 
         self.block_eval(&hook.statements)?;
 
-        Ok(HashMap::new())
+        let vars = self.vars.borrow();
+        let Expr::Object(arg) = &**vars.get(hook.arg.name).unwrap() else {
+            return Err(anyhow!("arg should be an object"));
+        };
+        Ok(arg.value.to_owned())
     }
 }
 
