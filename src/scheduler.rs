@@ -8,8 +8,8 @@ use libbpf_rs::OpenObject;
 use pest::Span;
 use scx_utils::UserExitInfo;
 
+use crate::bpf::bpf_skel::*;
 use crate::bpf::*;
-use crate::bpf_skel::*;
 use crate::engine::{Engine, Hook};
 use crate::parser::{Expr, IntegerLiteral};
 

@@ -1,6 +1,4 @@
 mod bpf;
-mod bpf_intf;
-mod bpf_skel;
 mod engine;
 mod parser;
 mod scheduler;
