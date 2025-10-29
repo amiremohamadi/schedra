@@ -82,8 +82,12 @@ impl<'a> Engine<'a> {
     }
 
     fn resolve_ident(&self, name: &'a str, span: Span<'a>) -> SchedraResult<'_, Expr<'a>> {
+        if let Some(x) = self.global_vars.borrow().get(name) {
+            return self.expr_eval(x);
+        }
+
         match self.vars.borrow().get(name) {
-            Some(x) => self.expr_eval(x),
+            Some(x) => self.expr_eval(&**x),
             None => match self.builtins.get(name) {
                 // TODO: currently we consider all the builtins as integers
                 // should be generic in the future
@@ -167,12 +171,12 @@ impl<'a> Engine<'a> {
         }
     }
 
-    fn expr_eval(&self, expr: &Box<Expr<'a>>) -> SchedraResult<'_, Expr<'a>> {
+    fn expr_eval(&self, expr: &Expr<'a>) -> SchedraResult<'_, Expr<'a>> {
         let span = expr.span();
-        match &**expr {
+        match expr {
             Expr::Identifier(ident) => self.resolve_ident(ident.name, span),
-            Expr::BinaryExpr(expr) => self.binary_expr_eval(expr, span),
-            Expr::ScopeAccess(scop) => self.scope_expr_eval(scop),
+            Expr::BinaryExpr(expr) => self.binary_expr_eval(&expr, span),
+            Expr::ScopeAccess(scop) => self.scope_expr_eval(&scop),
             e => Ok(e.clone()),
         }
     }
