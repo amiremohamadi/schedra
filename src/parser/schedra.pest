@@ -5,7 +5,7 @@ NEWLINE    = _{ "\r\n" | "\n" }
 identifier = @{ (ASCII_ALPHANUMERIC | "_")+ }
 string     = { "\"" ~ inner_string ~ "\"" }
 inner_string = @{ (!"\"" ~ ANY)* }
-number     = @{ ASCII_DIGIT+ }
+number     = @{ "-"? ~ ASCII_DIGIT+ }
 
 scope_access = { identifier ~ "." ~ identifier }
 
