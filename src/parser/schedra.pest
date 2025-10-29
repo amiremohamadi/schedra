@@ -2,39 +2,39 @@ WHITESPACE = _{ (" " | "\t" | "\r" | "\n")+ }
 COMMENT    = _{ "//" ~ (!NEWLINE ~ ANY)* ~ NEWLINE? }
 NEWLINE    = _{ "\r\n" | "\n" }
 
-identifier = @{ (ASCII_ALPHANUMERIC | "_")+ }
-string     = { "\"" ~ inner_string ~ "\"" }
+identifier   = @{ (ASCII_ALPHANUMERIC | "_")+ }
+string       =  { "\"" ~ inner_string ~ "\"" }
 inner_string = @{ (!"\"" ~ ANY)* }
-number     = @{ "-"? ~ ASCII_DIGIT+ }
+number       = @{ "-"? ~ ASCII_DIGIT+ }
 
 scope_access = { identifier ~ "." ~ identifier }
 
-primary   =  {
+primary =  {
     string
   | number
   | scope_access
   | identifier
   | "(" ~ expr ~ ")"
 }
-expr         =  { primary ~ (infix ~ primary)* }
-infix        = _{ add | sub | mul | div | le | lt | ge | gt | eq | ne | and | or }
-add          =  { "+" }
-sub          =  { "-" }
-mul          =  { "*" }
-div          =  { "/" }
-mod          =  { "%" }
-bit_and      =  { "&" }
-bit_or       =  { "|" }
-shiftr       =  { ">>" }
-shiftl       =  { "<<" }
-le           =  { "<=" }
-lt           =  { "<" }
-ge           =  { ">=" }
-gt           =  { ">" }
-eq           =  { "==" }
-ne           =  { "!=" }
-and          =  { "&&" }
-or           =  { "||" }
+expr    =  { primary ~ (infix ~ primary)* }
+infix   = _{ add | sub | mul | div | le | lt | ge | gt | eq | ne | and | or | mod | bit_and | bit_or | shiftr | shiftl }
+add     =  { "+" }
+sub     =  { "-" }
+mul     =  { "*" }
+div     =  { "/" }
+mod     =  { "%" }
+bit_and =  { "&" }
+bit_or  =  { "|" }
+shiftr  =  { ">>" }
+shiftl  =  { "<<" }
+le      =  { "<=" }
+lt      =  { "<" }
+ge      =  { ">=" }
+gt      =  { ">" }
+eq      =  { "==" }
+ne      =  { "!=" }
+and     =  { "&&" }
+or      =  { "||" }
 
 assign_op  =  { "=" | "+=" | "-=" }
 assignment =  { (scope_access | identifier) ~ assign_op ~ expr }
@@ -42,7 +42,7 @@ base_stmt  = _{ assignment | expr }
 condition  =  { "if" ~ expr ~ block }
 statement  =  { (condition | base_stmt ~ ";") }
 
-block      =  { "{" ~ statement* ~ "}" }
-hook       =  { "on" ~ identifier ~ "(" ~ identifier ~ ")" ~ block }
+block = { "{" ~ statement* ~ "}" }
+hook  = { "on" ~ identifier ~ "(" ~ identifier ~ ")" ~ block }
 
-program    = { SOI ~  (hook | statement)* ~ EOI }
+program = { SOI ~ (hook | statement)* ~ EOI }
