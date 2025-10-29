@@ -1,5 +1,5 @@
 use super::*;
-use anyhow::Result;
+use anyhow::{Result, anyhow};
 use itertools::Itertools;
 use pest::{
     Parser, Span,
@@ -203,6 +203,6 @@ fn convert_prog(pair: Pair<Rule>) -> Program {
 pub fn parse(input: &str) -> Result<Program<'_>> {
     let pair = SchedraParser::parse(Rule::program, input)?
         .exactly_one()
-        .map_err(|_| anyhow::anyhow!("failed to parse the program"))?;
+        .map_err(|e| anyhow!(e.to_string()))?;
     Ok(convert_prog(pair))
 }

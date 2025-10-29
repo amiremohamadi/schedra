@@ -1,5 +1,6 @@
 mod bpf;
 mod engine;
+mod error;
 mod parser;
 mod scheduler;
 
@@ -23,7 +24,7 @@ fn main() -> Result<()> {
     };
 
     let mut object = MaybeUninit::uninit();
-    let mut engine = Engine::init(&file)?;
+    let mut engine = Engine::init(&args.file, &file)?;
     loop {
         let mut scheduler = Scheduler::new(&mut object)?;
         if !scheduler.run(&mut engine)?.should_restart() {

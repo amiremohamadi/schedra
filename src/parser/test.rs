@@ -1,7 +1,5 @@
 #![cfg(test)]
-
 use super::ast::parse;
-use super::*;
 
 fn parse_no_errors(input: &str) {
     let prog = parse(input);
