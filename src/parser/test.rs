@@ -17,6 +17,7 @@ fn test_smoke() {
             x = 2;
             y = 2 + 3;
             z = -2;
+            y = (2 + 2) * 3;
             object.field_x = 69;
             if object.field {
                 // do sth

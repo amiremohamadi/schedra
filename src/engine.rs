@@ -316,7 +316,7 @@ mod tests {
                 task.weight = 10;
 
                 if x > 1 {
-                    cond = 99;
+                    cond = (1 + 2) * 3 + 1;
                 }
 
                 if name == "schedra" {
@@ -340,7 +340,7 @@ mod tests {
         assert_var!(engine, "z", Expected::Int(0));
         assert_var!(engine, "true", Expected::Int(1));
         assert_var!(engine, "false", Expected::Int(0));
-        assert_var!(engine, "cond", Expected::Int(99));
+        assert_var!(engine, "cond", Expected::Int(10));
         assert_var!(engine, "cond_str", Expected::Int(10));
         assert_var!(engine, "cond_scope", Expected::Int(15));
 

@@ -14,26 +14,27 @@ primary   =  {
   | number
   | scope_access
   | identifier
+  | "(" ~ expr ~ ")"
 }
-expr      =  { primary ~ (infix ~ primary)* }
-infix     = _{ add | sub | mul | div | le | lt | ge | gt | eq | ne | and | or }
-add       =  { "+" }
-sub       =  { "-" }
-mul       =  { "*" }
-div       =  { "/" }
-mod       =  { "%" }
-bit_and   =  { "&" }
-bit_or    =  { "|" }
-shiftr    =  { ">>" }
-shiftl    =  { "<<" }
-le        =  { "<=" }
-lt        =  { "<" }
-ge        =  { ">=" }
-gt        =  { ">" }
-eq        =  { "==" }
-ne        =  { "!=" }
-and       =  { "&&" }
-or        =  { "||" }
+expr         =  { primary ~ (infix ~ primary)* }
+infix        = _{ add | sub | mul | div | le | lt | ge | gt | eq | ne | and | or }
+add          =  { "+" }
+sub          =  { "-" }
+mul          =  { "*" }
+div          =  { "/" }
+mod          =  { "%" }
+bit_and      =  { "&" }
+bit_or       =  { "|" }
+shiftr       =  { ">>" }
+shiftl       =  { "<<" }
+le           =  { "<=" }
+lt           =  { "<" }
+ge           =  { ">=" }
+gt           =  { ">" }
+eq           =  { "==" }
+ne           =  { "!=" }
+and          =  { "&&" }
+or           =  { "||" }
 
 assign_op  =  { "=" | "+=" | "-=" }
 assignment =  { (scope_access | identifier) ~ assign_op ~ expr }
