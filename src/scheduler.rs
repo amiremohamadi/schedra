@@ -1,6 +1,4 @@
-use std::{
-    collections::HashMap, mem::MaybeUninit,
-};
+use std::{collections::HashMap, mem::MaybeUninit};
 
 use anyhow::{Result, anyhow};
 use libbpf_rs::OpenObject;
@@ -94,7 +92,7 @@ fn init_hook_arg<'a>(task: &QueuedTask, span: &Span<'a>) -> HashMap<&'a str, Exp
 }
 
 pub struct Scheduler<'a> {
-    bpf_scheduler: BpfScheduler<'a>,
+    pub bpf_scheduler: BpfScheduler<'a>,
 }
 
 impl<'a> Scheduler<'a> {
@@ -104,6 +102,8 @@ impl<'a> Scheduler<'a> {
     }
 
     fn schedule(&mut self, engine: &mut Engine) -> Result<()> {
+        self.register_builtins(engine); // FIXME: performance costs
+
         while let Ok(Some(task)) = self.bpf_scheduler.dequeue_task() {
             let hook = engine.get_hook("dequeue");
             *hook.arg.value.borrow_mut() = init_hook_arg(&task, &hook.arg.span);
@@ -131,6 +131,45 @@ impl<'a> Scheduler<'a> {
 
         self.bpf_scheduler.notify_complete(0);
         Ok(())
+    }
+
+    fn register_builtins(&mut self, engine: &mut Engine) {
+        engine
+            .builtins
+            .insert("nr_queued", *self.bpf_scheduler.nr_queued_mut());
+        engine
+            .builtins
+            .insert("nr_running", *self.bpf_scheduler.nr_running_mut());
+        engine
+            .builtins
+            .insert("nr_online_cpus", *self.bpf_scheduler.nr_online_cpus_mut());
+        engine
+            .builtins
+            .insert("nr_scheduled", *self.bpf_scheduler.nr_scheduled_mut());
+        engine.builtins.insert(
+            "nr_user_dispatches",
+            *self.bpf_scheduler.nr_user_dispatches_mut(),
+        );
+        engine.builtins.insert(
+            "nr_kernel_dispatches",
+            *self.bpf_scheduler.nr_kernel_dispatches_mut(),
+        );
+        engine.builtins.insert(
+            "nr_cancel_dispatches",
+            *self.bpf_scheduler.nr_cancel_dispatches_mut(),
+        );
+        engine.builtins.insert(
+            "nr_bounce_dispatches",
+            *self.bpf_scheduler.nr_bounce_dispatches_mut(),
+        );
+        engine.builtins.insert(
+            "nr_failed_dispatches",
+            *self.bpf_scheduler.nr_failed_dispatches_mut(),
+        );
+        engine.builtins.insert(
+            "nr_sched_congested",
+            *self.bpf_scheduler.nr_sched_congested_mut(),
+        );
     }
 
     pub fn run(&mut self, engine: &mut Engine<'_>) -> Result<UserExitInfo> {

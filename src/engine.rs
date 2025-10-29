@@ -3,9 +3,10 @@ use std::collections::HashMap;
 
 use crate::parser::ast;
 use crate::parser::{
-    Assignment, BinaryExpr, Cond, Expr, ExprOp, IntegerLiteral, Lvalue, Node, Object,
-    ScopeAccess, Statement,
+    Assignment, BinaryExpr, Cond, Expr, ExprOp, IntegerLiteral, Lvalue, Node, Object, ScopeAccess,
+    Statement,
 };
+use crate::scheduler::Scheduler;
 use anyhow::{Result, anyhow};
 use pest::Span;
 
@@ -35,6 +36,7 @@ pub struct Engine<'a> {
     // TODO: bound variables to scopes
     pub vars: RefCell<HashMap<&'a str, Box<Expr<'a>>>>,
     pub global_vars: RefCell<HashMap<&'a str, Expr<'a>>>,
+    pub builtins: HashMap<&'a str, u64>,
 }
 
 impl<'a> Engine<'a> {
@@ -57,6 +59,7 @@ impl<'a> Engine<'a> {
             hooks,
             vars: RefCell::new(HashMap::new()),
             global_vars: RefCell::new(HashMap::new()),
+            builtins: HashMap::from([("RL_CPU_ANY", 1 << 20)]),
         };
 
         parsed.assigns.into_iter().for_each(|a| {
@@ -73,7 +76,15 @@ impl<'a> Engine<'a> {
     fn resolve_ident(&self, name: &'a str, span: Span<'a>) -> Expr<'a> {
         match self.vars.borrow().get(name) {
             Some(x) => self.expr_eval(x),
-            None => Expr::Integer(Box::new(IntegerLiteral { value: 0, span })),
+            None => match self.builtins.get(name) {
+                // TODO: currently we consider all the builtins as integers
+                // should be generic in the future
+                Some(&x) => Expr::Integer(Box::new(IntegerLiteral {
+                    value: x as _,
+                    span,
+                })),
+                None => Expr::Integer(Box::new(IntegerLiteral { value: 0, span })),
+            },
         }
     }
 
