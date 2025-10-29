@@ -74,6 +74,15 @@ relational operators:
 | `==`      | left-hand expression is equal to right-hand      |
 | `!=`      | left-hand expression is not equal to right-hand  |
 
+bitwise operators:
+
+| operator | description     |
+|-----------|----------------|
+| `<<`      | shift left     |
+| `>>`      | shift right    |
+| `&`       | bitwise and    |
+| `|`       | bitwise or     |
+
 assignment operators:
 
 | operator | description                                      |
@@ -132,4 +141,16 @@ on dequeue(t) {
 ```
 
 ### Builtins
-TODO
+
+| built-in variable        | description |
+|--------------------------|------------|
+| nr_queued                | number of tasks currently queued |
+| nr_running               | number of tasks currently running |
+| nr_online_cpus           | number of online cpus |
+| nr_scheduled             | total number of scheduled tasks |
+| nr_user_dispatches       | number of user-level dispatches |
+| nr_kernel_dispatches     | number of kernel-level dispatches |
+| nr_cancel_dispatches     | number of canceled dispatches |
+| nr_bounce_dispatches     | number of bounced dispatches |
+| nr_failed_dispatches     | number of failed dispatches |
+| nr_sched_congested       | number of congested scheduler events |

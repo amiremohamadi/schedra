@@ -23,6 +23,9 @@ on dequeue(task) {
 ```
 see the [reference guide](./docs/reference_guide.md) for more details.
 
+## Resources
+- [building a scripting language for kernel scheduler (my livestream)](https://www.youtube.com/watch?v=u3aTpKRcXQQ)
+
 ## Roadmap
 - [ ] JIT compilation
 - [ ] expression optimizer
