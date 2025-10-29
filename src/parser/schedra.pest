@@ -21,6 +21,11 @@ add       =  { "+" }
 sub       =  { "-" }
 mul       =  { "*" }
 div       =  { "/" }
+mod       =  { "%" }
+bit_and   =  { "&" }
+bit_or    =  { "|" }
+shiftr    =  { ">>" }
+shiftl    =  { "<<" }
 le        =  { "<=" }
 lt        =  { "<" }
 ge        =  { ">=" }

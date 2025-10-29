@@ -77,6 +77,11 @@ fn convert_expr(pair: Pair<Rule>) -> Expr {
             | Op::infix(Rule::lt, Assoc::Left)
             | Op::infix(Rule::eq, Assoc::Left)
             | Op::infix(Rule::ne, Assoc::Left))
+        .op(Op::infix(Rule::r#mod, Assoc::Left)
+            | Op::infix(Rule::bit_and, Assoc::Left)
+            | Op::infix(Rule::bit_or, Assoc::Left)
+            | Op::infix(Rule::shiftr, Assoc::Left)
+            | Op::infix(Rule::shiftl, Assoc::Left))
         .op(Op::infix(Rule::add, Assoc::Left) | Op::infix(Rule::sub, Assoc::Left))
         .op(Op::infix(Rule::mul, Assoc::Left) | Op::infix(Rule::div, Assoc::Left));
 
