@@ -1,13 +1,14 @@
 use std::{collections::HashMap, mem::MaybeUninit};
 
-use anyhow::{Result, anyhow};
+use anyhow::Result;
 use libbpf_rs::OpenObject;
 use pest::Span;
 use scx_utils::UserExitInfo;
 
 use crate::bpf::*;
 use crate::engine::Engine;
-use crate::parser::{Expr, IntegerLiteral};
+use crate::error::{Error, Result as SchedraResult, Type, emit_error};
+use crate::parser::{Expr, IntegerLiteral, Node};
 
 macro_rules! convert_expr {
     ($expr:expr) => {{
@@ -16,7 +17,7 @@ macro_rules! convert_expr {
                 let IntegerLiteral { value, .. } = *b;
                 Ok(value)
             }
-            _ => Err(anyhow!("expected Expr::Int")),
+            e => Err(Error::ExpectedType(Type::Int, e.span())),
         }
     }};
 }
@@ -101,11 +102,11 @@ impl<'a> Scheduler<'a> {
         Ok(Self { bpf_scheduler })
     }
 
-    fn schedule(&mut self, engine: &mut Engine) -> Result<()> {
+    fn schedule<'b>(&mut self, engine: &'b mut Engine) -> SchedraResult<'b, ()> {
         self.register_builtins(engine); // FIXME: performance costs
 
         while let Ok(Some(task)) = self.bpf_scheduler.dequeue_task() {
-            let hook = engine.get_hook("dequeue");
+            let hook = engine.get_hook("dequeue")?;
             *hook.arg.value.borrow_mut() = init_hook_arg(&task, &hook.arg.span);
 
             let arg = engine.eval(hook)?;
@@ -175,8 +176,12 @@ impl<'a> Scheduler<'a> {
     pub fn run(&mut self, engine: &mut Engine<'_>) -> Result<UserExitInfo> {
         println!("Running...");
 
+        let file_name = engine.file_name;
+        let buf = engine.buf;
+
         while !self.bpf_scheduler.exited() {
             if let Err(e) = self.schedule(engine) {
+                emit_error(e, file_name, buf);
                 break;
             }
         }
