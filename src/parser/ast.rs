@@ -24,7 +24,7 @@ fn convert_str(pair: Pair<Rule>) -> StringLiteral {
     let inner = pair.into_inner().next().unwrap();
     let span = inner.as_span();
     StringLiteral {
-        value: inner.as_str(),
+        value: inner.as_str().to_string(),
         span,
     }
 }

@@ -1,4 +1,4 @@
-use std::{collections::HashMap, mem::MaybeUninit};
+use std::{collections::HashMap, ffi::CStr, mem::MaybeUninit};
 
 use anyhow::Result;
 use libbpf_rs::OpenObject;
@@ -8,7 +8,7 @@ use scx_utils::UserExitInfo;
 use crate::bpf::*;
 use crate::engine::Engine;
 use crate::error::{Error, Result as SchedraResult, Type, emit_error};
-use crate::parser::{Expr, IntegerLiteral, Node};
+use crate::parser::{Expr, IntegerLiteral, Node, StringLiteral};
 
 macro_rules! convert_expr {
     ($expr:expr) => {{
@@ -28,6 +28,17 @@ fn init_hook_arg<'a>(task: &QueuedTask, span: &Span<'a>) -> HashMap<&'a str, Exp
             "pid",
             Expr::Integer(Box::new(IntegerLiteral {
                 value: task.pid as _,
+                span: span.clone(),
+            })),
+        ),
+        (
+            "comm",
+            Expr::String(Box::new(StringLiteral {
+                value: unsafe {
+                    CStr::from_ptr(task.comm.as_ptr())
+                        .to_string_lossy()
+                        .into_owned()
+                },
                 span: span.clone(),
             })),
         ),

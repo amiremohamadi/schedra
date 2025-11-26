@@ -107,15 +107,16 @@ currently only `dequeue` hook is supported. it receives an object type argument 
 
 | field              | description                                                     |
 |--------------------|-----------------------------------------------------------------|
-| `pid`              | pid that uniquely identifies a task                              |
-| `cpu`              | cpu previously used by the task                                  |
-| `nr_cpus_allowed`  | number of cpus that the task can use                             |
-| `flags`            | task's enqueue flags                                             |
-| `start_ts`         | timestamp since last time the task ran on a cpu (in ns)          |
-| `stop_ts`          | timestamp since last time the task released a cpu (in ns)        |
-| `exec_runtime`     | total cpu time since last sleep (in ns)                          |
-| `weight`           | task priority in the range [1..10000] (default is 100)           |
-| `vtime`            | current task vruntime / deadline (set by the scheduler)          |
+| `pid`              | pid that uniquely identifies a task                             |
+| `comm`             | task's executable name                                          |
+| `cpu`              | cpu previously used by the task                                 |
+| `nr_cpus_allowed`  | number of cpus that the task can use                            |
+| `flags`            | task's enqueue flags                                            |
+| `start_ts`         | timestamp since last time the task ran on a cpu (in ns)         |
+| `stop_ts`          | timestamp since last time the task released a cpu (in ns)       |
+| `exec_runtime`     | total cpu time since last sleep (in ns)                         |
+| `weight`           | task priority in the range [1..10000] (default is 100)          |
+| `vtime`            | current task vruntime / deadline (set by the scheduler)         |
 
 and the following fields can be modified
 
@@ -154,3 +155,4 @@ on dequeue(t) {
 | nr_bounce_dispatches     | number of bounced dispatches |
 | nr_failed_dispatches     | number of failed dispatches |
 | nr_sched_congested       | number of congested scheduler events |
+| RL_CPU_ANY               | dispatch on the first CPU available |

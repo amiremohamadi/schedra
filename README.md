@@ -16,8 +16,12 @@ a prototype for eBPF summit 2025 hackathon
 ## Example
 ```
 on dequeue(task) {
-  if pid == 9924 {
+  if task.pid == 9924 {
     task.dispatch = 0;
+  }
+  // pin nginx processes on cpu 3
+  if task.comm == "nginx" {
+    task.cpu = 3;
   }
 }
 ```

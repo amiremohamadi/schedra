@@ -36,7 +36,7 @@ impl<'a> Node<'a> for ScopeAccess<'a> {
 
 #[derive(Debug, Clone)]
 pub struct StringLiteral<'a> {
-    pub value: &'a str,
+    pub value: String,
     pub span: Span<'a>,
 }
 
