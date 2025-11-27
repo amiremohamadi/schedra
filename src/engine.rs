@@ -115,7 +115,7 @@ impl<'a> Engine<'a> {
             (Expr::String(l), Expr::String(r)) => {
                 Self::eval_str_op(&expr.op, &l.value, &r.value, span)
             }
-            _ => unimplemented!(), // binary expressions are not supported on other types
+            _ => Err(Error::ExpectedType(Type::Int, span)),
         }
     }
 
